@@ -5,8 +5,19 @@
 **a. Initial design**
 
 - Briefly describe your initial UML design.
+
 - What classes did you include, and what responsibilities did you assign to each?
 
+Owner tracks name of the user, their availability and preferences
+Pet tracks name of the pet, species, owner
+Task tracks title of the task, duration_minutes, priority
+Schedule tracks tasks, their duration and prioritization
+
+Class | Key attributes | Key Methods
+Owner | name, available_minutes | Constructor, set_available_time()
+Pet | name, species, owner | Constructor
+Task | title, duration_minutes, priority | priority_score(), fits_in_time()
+Schedule | pet_name, tasks, start_time | generate_plan(), explain()
 **b. Design changes**
 
 - Did your design change during implementation?
