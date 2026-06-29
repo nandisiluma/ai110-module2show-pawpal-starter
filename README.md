@@ -47,11 +47,28 @@ pip install -r requirements.txt
 Paste a sample of your app's CLI or Streamlit output here so a reader can see what a generated plan looks like:
 
 ```
-# e.g.:
-# Daily plan for Biscuit (Golden Retriever):
-#   08:00 — Morning walk (30 min) [priority: high]
-#   09:00 — Feeding (10 min) [priority: high]
-#   ...
+# Jordan — 90 min available | pets: Mochi, Biscuit | preferences: # no tasks before 8am
+# Mochi the cat (senior) | notes: hyperthyroid, needs morning meds
+#  Morning meds (5 min, high priority, daily) [pending]
+#  Feeding (10 min, high priority, daily) [pending]
+#  Brushing (15 min, low priority, weekly) [pending]
+# Biscuit the dog
+#  Morning walk (30 min, high priority, daily) [pending]
+#  Training (20 min, medium priority, daily) [pending]
+#  Playtime (25 min, low priority, daily) [pending]
+
+========================================
+# Daily plan for Jordan's pets
+# Available time: 90 min | Start: 08:00
+
+  08:00 — [Mochi] Morning meds (5 min) [priority: high]
+  08:05 — [Mochi] Feeding (10 min) [priority: high]
+  08:15 — [Biscuit] Morning walk (30 min) [priority: high]
+  08:45 — [Biscuit] Training (20 min) [priority: medium]
+  09:05 — [Mochi] Brushing (15 min) [priority: low]
+
+Skipped (not enough time):
+  - [Biscuit] Playtime (25 min)
 ```
 
 ## 🧪 Testing PawPal+
@@ -74,12 +91,12 @@ Sample test output:
 
 > Fill in once you've implemented scheduling logic.
 
-| Feature | Method(s) | Notes |
-|---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| Feature           | Method(s) | Notes                             |
+| ----------------- | --------- | --------------------------------- |
+| Task sorting      |           | e.g., by priority, duration       |
+| Filtering         |           | e.g., skip tasks if time runs out |
+| Conflict handling |           | e.g., overlapping time slots      |
+| Recurring tasks   |           | e.g., daily vs. weekly            |
 
 ## 📸 Demo Walkthrough
 
@@ -91,4 +108,4 @@ Describe your app in numbered steps so a reader can follow along without watchin
 4. <!-- Describe this step -->
 5. <!-- Add more steps as needed -->
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+**Screenshot or video** _(optional)_: <!-- Insert a screenshot or link to a demo video here -->

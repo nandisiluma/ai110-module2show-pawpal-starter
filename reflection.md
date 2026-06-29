@@ -18,10 +18,20 @@ Owner | name, available_minutes | Constructor, set_available_time()
 Pet | name, species, owner | Constructor
 Task | title, duration_minutes, priority | priority_score(), fits_in_time()
 Schedule | pet_name, tasks, start_time | generate_plan(), explain()
+
 **b. Design changes**
 
 - Did your design change during implementation?
 - If yes, describe at least one change and why you made it.
+
+I received the following feedback from AI:
+
+generate() return type is too vague
+
+The UML says generate() list and the skeleton says list[Task]. But a schedule isn't just a list of tasks — each task needs an assigned time slot. Returning bare Task objects loses the "when" information. Consider returning a list of tuples like list[tuple[str, Task]] (e.g. [("08:00", walk_task), ("08:30", feed_task)]) or a small ScheduledTask dataclass with time_slot and task.
+
+changes made:
+Update the return type of generate() to carry time slot data, not just tasks.
 
 ---
 

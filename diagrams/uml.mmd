@@ -1,36 +1,56 @@
 classDiagram
-    class Owner {
-        +str name
-        +int available_minutes
-        +set_available_time(minutes) None
+    class Task {
+        +str title
+        +int duration_minutes
+        +str priority
+        +str frequency
+        +bool completed
+        +priority_score() int
+        +fits_in_time(remaining_minutes) bool
+        +mark_complete() None
+        +reset() None
         +__str__() str
     }
 
     class Pet {
         +str name
         +str species
-        +Owner owner
+        +int age
+        +str notes
+        +list~Task~ tasks
+        +add_task(task) None
+        +get_pending_tasks() list~Task~
+        +is_senior() bool
         +__str__() str
     }
 
-    class Task {
-        +str title
-        +int duration_minutes
-        +str priority
-        +priority_score() int
-        +fits_in_time(remaining_minutes) bool
+    class Owner {
+        +str name
+        +int available_minutes
+        +list~str~ preferences
+        +list~Pet~ pets
+        +add_pet(pet) None
+        +get_all_tasks() list~tuple~
+        +set_available_time(minutes) None
+        +add_preference(preference) None
         +__str__() str
+    }
+
+    class ScheduledTask {
+        +str time_slot
+        +Task task
+        +str pet_name
     }
 
     class Schedule {
-        +Pet pet
-        +list tasks
+        +Owner owner
         +str start_time
-        +add_task(task) None
-        +generate() list
+        +generate() list~ScheduledTask~
         +explain() str
     }
 
-    Owner "1" --> "1..*" Pet : owns
-    Pet "1" --> "1" Schedule : has
-    Schedule "1" o-- "0..*" Task : contains
+    Owner "1" o-- "0..*" Pet : owns
+    Pet "1" o-- "0..*" Task : has
+    Schedule "1" --> "1" Owner : reads from
+    Schedule "1" --> "0..*" ScheduledTask : generates
+    ScheduledTask "1" --> "1" Task : wraps
