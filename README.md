@@ -76,9 +76,23 @@ Skipped (not enough time):
 ```bash
 # Run the full test suite:
 pytest
+python -m pytest
 
 # Run with coverage:
 pytest --cov
+
+test_sort_by_time_returns_chronological_order
+
+Creates an owner with one pet and three tasks of different priorities. Calls generate() so every task gets a time string assigned (e.g. "08:00", "08:30"), then calls sort_by_time() and checks that the returned list of times is in ascending order. The key insight: generate() fills slots greedily by priority, so the clock times happen to be ascending already — but sort_by_time() must enforce that order explicitly via _parse_time, not rely on insertion order.
+
+test_daily_task_recurrence_schedules_next_day
+
+Creates a pet with a single daily task due today. Calls mark_task_complete("Feeding") and checks three things on the returned new task: it's not None (meaning a match was found), its completed flag is False (a fresh occurrence starts pending), and its due_date is exactly today + 1 day. This pins the timedelta(days=1) branch in pawpal_system.py
+
+test_detect_conflicts_flags_overlapping_tasks
+
+Builds a schedule normally, then forces both tasks to "08:00" so their windows definitely overlap (the greedy scheduler itself would never double-book). This is intentional: it tests detect_conflicts() in isolation without relying on the scheduler producing a conflict naturally. The test then asserts that at least one warning string is returned and that it contains "WARNING".
+
 ```
 
 Sample test output:
@@ -89,13 +103,13 @@ Sample test output:
 
 ## 📐 Smarter Scheduling
 
-| Feature | Method(s) | Notes |
-| --- | --- | --- |
-| Task sorting | `Schedule.sort_by_time()` | Returns scheduled `Task` objects in ascending time-slot order. Relies on `task.time`, which is set during `generate()` — must be called after the plan is generated. |
-| Filtering by pet | `Schedule.filter_tasks(pet_name=...)` | Returns only the `ScheduledTask` entries belonging to the named pet. |
-| Filtering by status | `Schedule.filter_tasks(completed=...)` | Pass `True` for completed tasks or `False` for pending ones. Both filters compose — `filter_tasks(pet_name="Mochi", completed=False)` returns Mochi's pending tasks only. |
-| Conflict detection | `Schedule.detect_conflicts()` | Checks every unique pair of scheduled tasks using `itertools.combinations`. Returns a list of warning strings — one per overlapping pair — without raising exceptions. Uses interval overlap math: two tasks conflict when `a_start < b_end AND b_start < a_end`. |
-| Recurring tasks | `Task.next_occurrence()`, `Pet.mark_task_complete()` | Calling `pet.mark_task_complete(title)` marks the matching task done and automatically appends a fresh copy with an advanced `due_date`: +1 day for `"daily"` tasks, +7 days for `"weekly"` tasks (via Python's `timedelta`). |
+| Feature             | Method(s)                                            | Notes                                                                                                                                                                                                                                                             |
+| ------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Task sorting        | `Schedule.sort_by_time()`                            | Returns scheduled `Task` objects in ascending time-slot order. Relies on `task.time`, which is set during `generate()` — must be called after the plan is generated.                                                                                              |
+| Filtering by pet    | `Schedule.filter_tasks(pet_name=...)`                | Returns only the `ScheduledTask` entries belonging to the named pet.                                                                                                                                                                                              |
+| Filtering by status | `Schedule.filter_tasks(completed=...)`               | Pass `True` for completed tasks or `False` for pending ones. Both filters compose — `filter_tasks(pet_name="Mochi", completed=False)` returns Mochi's pending tasks only.                                                                                         |
+| Conflict detection  | `Schedule.detect_conflicts()`                        | Checks every unique pair of scheduled tasks using `itertools.combinations`. Returns a list of warning strings — one per overlapping pair — without raising exceptions. Uses interval overlap math: two tasks conflict when `a_start < b_end AND b_start < a_end`. |
+| Recurring tasks     | `Task.next_occurrence()`, `Pet.mark_task_complete()` | Calling `pet.mark_task_complete(title)` marks the matching task done and automatically appends a fresh copy with an advanced `due_date`: +1 day for `"daily"` tasks, +7 days for `"weekly"` tasks (via Python's `timedelta`).                                     |
 
 ## 📸 Demo Walkthrough
 
