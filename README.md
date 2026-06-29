@@ -22,6 +22,18 @@ Your final app should:
 - Display the plan clearly (and ideally explain the reasoning)
 - Include tests for the most important scheduling behaviors
 
+## Features
+
+| Feature | Algorithm / Behavior |
+|---|---|
+| **Priority-based scheduling** | `Schedule.generate()` scores every pending task (high=3, medium=2, low=1) and sorts descending before filling time slots. High-priority tasks always land first, regardless of the order they were added. |
+| **Chronological sort** | `Schedule.sort_by_time()` re-orders the generated plan by each task's assigned `HH:MM` slot, so the day can be displayed in reading order independently of priority. |
+| **Conflict detection** | `Schedule.detect_conflicts()` tests every unique pair of scheduled tasks using `itertools.combinations` and interval-overlap math (`a_start < b_end AND b_start < a_end`). Returns one warning string per overlapping pair; never raises. |
+| **Composable filtering** | `Schedule.filter_tasks(pet_name, completed)` applies up to two independent filters at once. Omit either argument to ignore that dimension; pass both to narrow to, e.g., Mochi's pending tasks only. |
+| **Daily / weekly recurrence** | `Task.next_occurrence()` creates a fresh, uncompleted copy of the task with `due_date` advanced by `timedelta(days=1)` for daily tasks or `timedelta(days=7)` for weekly ones. `Pet.mark_task_complete()` triggers this automatically and appends the new task to the pet's list. |
+| **Available-time gating** | A task is only placed in the plan if its duration fits within the owner's remaining minutes. Tasks that exceed remaining time are skipped and surfaced in a separate list. |
+| **Senior pet detection** | `Pet.is_senior()` flags dogs ≥ 7 years and cats ≥ 10 years so the UI can surface a visual senior tag. |
+
 ## Getting started
 
 ### Setup
@@ -42,33 +54,71 @@ pip install -r requirements.txt
 6. Connect your logic to the Streamlit UI in `app.py`.
 7. Refine UML so it matches what you actually built.
 
-## 🖥️ Sample Output
+## 🖥️ Sample CLI Output
 
-Paste a sample of your app's CLI or Streamlit output here so a reader can see what a generated plan looks like:
+Run `python main.py` from the project root to see all scheduler behaviors exercised end-to-end:
 
 ```
-# Jordan — 90 min available | pets: Mochi, Biscuit | preferences: # no tasks before 8am
-# Mochi the cat (senior) | notes: hyperthyroid, needs morning meds
-#  Morning meds (5 min, high priority, daily) [pending]
-#  Feeding (10 min, high priority, daily) [pending]
-#  Brushing (15 min, low priority, weekly) [pending]
-# Biscuit the dog
-#  Morning walk (30 min, high priority, daily) [pending]
-#  Training (20 min, medium priority, daily) [pending]
-#  Playtime (25 min, low priority, daily) [pending]
+Jordan — 90 min available | pets: Mochi, Biscuit | preferences: no tasks before 8am
+Mochi the cat (senior) | notes: hyperthyroid, needs morning meds
+  Brushing (15 min, low priority, weekly) [due: 2026-06-29] [pending]
+  Feeding (10 min, high priority, daily) [due: 2026-06-29] [pending]
+  Morning meds (5 min, high priority, daily) [due: 2026-06-29] [pending]
+Biscuit the dog
+  Playtime (25 min, low priority, daily) [due: 2026-06-29] [pending]
+  Training (20 min, medium priority, daily) [due: 2026-06-29] [pending]
+  Morning walk (30 min, high priority, daily) [due: 2026-06-29] [pending]
 
 ========================================
-# Daily plan for Jordan's pets
-# Available time: 90 min | Start: 08:00
+Daily plan for Jordan's pets
+Available time: 90 min | Start: 08:00
 
-  08:00 — [Mochi] Morning meds (5 min) [priority: high]
-  08:05 — [Mochi] Feeding (10 min) [priority: high]
+  08:00 — [Mochi] Feeding (10 min) [priority: high]
+  08:10 — [Mochi] Morning meds (5 min) [priority: high]
   08:15 — [Biscuit] Morning walk (30 min) [priority: high]
   08:45 — [Biscuit] Training (20 min) [priority: medium]
   09:05 — [Mochi] Brushing (15 min) [priority: low]
 
 Skipped (not enough time):
   - [Biscuit] Playtime (25 min)
+
+========================================
+Tasks sorted by scheduled time:
+  08:00 — Feeding (high priority)
+  08:10 — Morning meds (high priority)
+  08:15 — Morning walk (high priority)
+  08:45 — Training (medium priority)
+  09:05 — Brushing (low priority)
+
+========================================
+Biscuit's scheduled tasks:
+  08:15 — Morning walk (high priority)
+  08:45 — Training (medium priority)
+
+========================================
+Conflict detection:
+  Conflicts in generated plan: 0 (expected 0)
+  Conflicts after injecting overlapping task: 3
+  WARNING: [Mochi] Feeding (08:00–08:10) overlaps with [Mochi] Emergency vet (08:05–08:25)
+  WARNING: [Mochi] Morning meds (08:10–08:15) overlaps with [Mochi] Emergency vet (08:05–08:25)
+  WARNING: [Biscuit] Morning walk (08:15–08:45) overlaps with [Mochi] Emergency vet (08:05–08:25)
+
+========================================
+Marking tasks complete and checking next occurrences:
+
+  Completed: Mochi's Feeding
+  Next occurrence: Feeding | due: 2026-06-30 | status: pending
+
+  Completed: Mochi's Brushing
+  Next occurrence: Brushing | due: 2026-07-06 | status: pending
+
+========================================
+Mochi's full task list after completions:
+  Brushing (15 min, low priority, weekly) [due: 2026-06-29] [done]
+  Feeding (10 min, high priority, daily) [due: 2026-06-29] [done]
+  Morning meds (5 min, high priority, daily) [due: 2026-06-29] [pending]
+  Feeding (10 min, high priority, daily) [due: 2026-06-30] [pending]
+  Brushing (15 min, low priority, weekly) [due: 2026-07-06] [pending]
 ```
 
 ## 🧪 Testing PawPal+
@@ -98,8 +148,11 @@ Builds a schedule normally, then forces both tasks to "08:00" so their windows d
 Sample test output:
 
 ```
-# Paste your pytest output here
+# ================================================================================= 7 passed in 0.02s ===
+
 ```
+
+# Confidence level in system reliability = 4/5
 
 ## 📐 Smarter Scheduling
 
@@ -113,12 +166,39 @@ Sample test output:
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+### Streamlit UI (`streamlit run app.py`)
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+The app is divided into four sections that a user works through top to bottom.
 
-**Screenshot or video** _(optional)_: <!-- Insert a screenshot or link to a demo video here -->
+**Section 1 — Owner Info**
+Enter your name, how many minutes you have available today, and an optional scheduling preference (e.g. "no tasks before 9am"). Click **Save owner** to lock in your profile.
+
+**Section 2 — Add a Pet**
+Register each pet with a name, species, and age. Cats 10 years and older and dogs 7 years and older are automatically labelled as senior. An optional notes field stores care reminders (e.g. "needs morning meds").
+
+**Section 3 — Add Tasks**
+Select a pet from the dropdown and fill in a task name, duration in minutes, priority (high / medium / low), and frequency (daily / weekly). Each pet's full task list is shown below the form as a table.
+
+**Section 4 — Today's Schedule**
+Click **Generate schedule** to produce the daily plan. The scheduler:
+- Sorts all pending tasks by priority (high first) and greedily fills time slots
+- Skips any task whose duration exceeds remaining available minutes
+
+After generating, the UI shows:
+- A green **No conflicts detected** banner, or amber **WARNING** banners if two tasks overlap
+- A **Filter Tasks** panel — choose a pet and/or status (Pending / Completed) to narrow the view
+- A time-sorted table of all matching scheduled tasks
+- A collapsible **Skipped tasks** expander listing anything that didn't fit
+
+---
+
+### Example Workflow
+
+1. Fill in Owner Info: name **Jordan**, 90 min available
+2. Add **Mochi** (cat, age 11, notes: "hyperthyroid, needs morning meds") — she's tagged as senior
+3. Add tasks for Mochi: Morning meds (5 min, high, daily), Feeding (10 min, high, daily), Brushing (15 min, low, weekly)
+4. Add **Biscuit** (dog, age 4)
+5. Add tasks for Biscuit: Morning walk (30 min, high, daily), Training (20 min, medium, daily), Playtime (25 min, low, daily)
+6. Click **Generate schedule** — all three high-priority tasks fill first; Playtime is skipped (only 10 min left)
+7. Conflict banner shows green — no overlaps in the generated plan
+8. Use the **Filter by pet** dropdown to select Mochi and see only her three scheduled tasks

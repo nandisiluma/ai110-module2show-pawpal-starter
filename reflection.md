@@ -93,7 +93,14 @@ The tradeoff is reasonable here because a pet care schedule is small (typically 
 **a. How you used AI**
 
 - How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
+
+I used AI tools at every stage, from creating the UML diagram, I gave it the list of classes I planned on implementing, then asked for a fully fledged UML diagram showing the relationships. I later used it to modify the UML diagram to match the final system design.
+
+I also used AI to write all the code including the tests for this system. I wrote prompts in plain english and asked the AI assistant to translate my logic to code.
+
 - What kinds of prompts or questions were most helpful?
+
+I found direct prompts, that also asked the AI to validate its response helpful in ensuring that the code didn't break.
 
 **b. Judgment and verification**
 
@@ -112,6 +119,9 @@ The tradeoff is reasonable here because a pet care schedule is small (typically 
 **b. Confidence**
 
 - How confident are you that your scheduler works correctly?
+
+I am 4.5/5 confident.
+
 - What edge cases would you test next if you had more time?
 
 ---
@@ -122,10 +132,17 @@ The tradeoff is reasonable here because a pet care schedule is small (typically 
 
 - What part of this project are you most satisfied with?
 
+I was able to implement all the required functionalities, and my tests passed.
+
 **b. What you would improve**
 
 - If you had another iteration, what would you improve or redesign?
 
+Weekly tasks (e.g. Brushing) compete for daily time slots the same way daily tasks do. An owner with 90 minutes might want weekly tasks only scheduled on specific days.
+Fix: Add an optional preferred_days: list[str] field to Task (e.g. ["Monday", "Friday"]) and filter them out in generate() when today isn't a preferred day.
+
 **c. Key takeaway**
 
 - What is one important thing you learned about designing systems or working with AI on this project?
+
+It's important to understand the overall functionality of the system so you can lead the direction of the implementation. AI saves a great amount of time, and does a good job translating prompts to actual code.
