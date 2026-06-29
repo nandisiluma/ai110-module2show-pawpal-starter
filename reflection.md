@@ -35,6 +35,42 @@ Update the return type of generate() to carry time slot data, not just tasks.
 
 ---
 
+Improvements
+
+Scheduling Algorithm
+
+1. Tie-break same-priority tasks by shortest duration first
+
+Equal-priority tasks are ordered arbitrarily. Sorting by (priority_score DESC, duration_minutes ASC) packs more tasks into limited time — classic Shortest Job First for equal-weight work.
+
+2. Fill leftover time with skipped tasks (gap-filling pass)
+
+After the greedy pass, a second pass over skipped tasks can slot in any that now fit in the remaining minutes. Currently, a 5-minute gap left by a medium task would be wasted even if a short low-priority task fits perfectly.
+
+Task Model 3. Add a must_schedule flag on Task
+
+Medication tasks (like Mochi's meds) should never be silently dropped. A must_schedule: bool = False field lets generate() always slot these in first, separate from the priority queue — guarantees critical care regardless of available time.
+
+4. Frequency-aware sorting
+
+daily and weekly tasks are treated identically. Daily tasks should be scheduled before weekly tasks of the same priority level, since missing a daily task has compounding consequences.
+
+Pet Model 5. Auto-boost senior pet task priority
+
+is_senior() exists in pawpal_system.py:58 but the scheduler never uses it. Senior pets (Mochi at 11) could have their task priority_score() bumped +1 automatically during scheduling — their health needs are higher-stakes.
+
+6. Group tasks by pet
+
+The scheduler interleaves tasks from different pets arbitrarily. Grouping consecutive tasks by pet reduces context-switching (and is less disorienting for animals). Sort by (pet_name, priority_score DESC) after the priority sort, or group using itertools.groupby.
+
+Owner / Preferences 7. Parse time preferences to enforce a hard start window
+
+Preferences like "no tasks before 8am" are stored as raw strings in pawpal_system.py:92 but never read. A small regex (r'(\d+)(am|pm)') could extract the constraint and enforce start_time accordingly in generate().
+
+8. Deduplicate tasks on add
+
+add_task in pawpal_system.py:50 has no guard against duplicate titles. A check like if any(t.title == task.title for t in self.tasks) prevents accidental double-scheduling of the same task.
+
 ## 2. Scheduling Logic and Tradeoffs
 
 **a. Constraints and priorities**
@@ -44,8 +80,11 @@ Update the return type of generate() to carry time slot data, not just tasks.
 
 **b. Tradeoffs**
 
-- Describe one tradeoff your scheduler makes.
-- Why is that tradeoff reasonable for this scenario?
+The `generate()` method uses a greedy algorithm: it sorts all tasks by priority score and assigns them to time slots in order, stopping whenever a task does not fit in the remaining time. It never backtracks or tries rearranging earlier decisions.
+
+This means a long high-priority task that barely exceeds the remaining budget causes the scheduler to skip it — and then also skip any smaller lower-priority tasks that could have filled that gap, even if their total duration would have fit. An optimal knapsack algorithm would consider all combinations and find the highest-value set of tasks that fits within the available time.
+
+The tradeoff is reasonable here because a pet care schedule is small (typically under 20 tasks per day), runs once per day, and needs to be easy to reason about. A greedy approach is O(n log n), always produces the same predictable result, and correctly handles the most common case where high-priority tasks (medication, feeding) are short enough to always be scheduled first. Optimality only matters when the schedule is tight and tasks are densely packed — a scenario where the owner's available time should simply be increased rather than relying on a more complex algorithm.
 
 ---
 

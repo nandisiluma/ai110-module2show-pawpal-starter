@@ -1,4 +1,7 @@
 from dataclasses import dataclass, field
+from datetime import date, timedelta
+from itertools import combinations
+from typing import Optional
 
 
 @dataclass
@@ -15,6 +18,8 @@ class Task:
     priority: str                          # "low", "medium", or "high"
     frequency: str = "daily"               # "daily" or "weekly"
     completed: bool = field(default=False)
+    time: str = ""
+    due_date: date = field(default_factory=date.today)
 
     def priority_score(self) -> int:
         """Return a numeric score (1-3) for sorting by priority."""
@@ -29,6 +34,22 @@ class Task:
         """Mark this task as completed."""
         self.completed = True
 
+    def next_occurrence(self) -> "Task":
+        """Return a fresh, uncompleted Task scheduled for the next occurrence.
+
+        The due_date is advanced by 1 day for daily tasks and 7 days for weekly
+        tasks using timedelta. All other attributes (title, duration, priority,
+        frequency) are copied from the original. The original task is not modified.
+        """
+        days = 1 if self.frequency == "daily" else 7
+        return Task(
+            title=self.title,
+            duration_minutes=self.duration_minutes,
+            priority=self.priority,
+            frequency=self.frequency,
+            due_date=self.due_date + timedelta(days=days),
+        )
+
     def reset(self) -> None:
         """Reset this task's completion status to pending."""
         self.completed = False
@@ -36,7 +57,10 @@ class Task:
     def __str__(self) -> str:
         """Return a readable summary of the task."""
         status = "done" if self.completed else "pending"
-        return f"{self.title} ({self.duration_minutes} min, {self.priority} priority, {self.frequency}) [{status}]"
+        return (
+            f"{self.title} ({self.duration_minutes} min, {self.priority} priority, "
+            f"{self.frequency}) [due: {self.due_date}] [{status}]"
+        )
 
 
 @dataclass
@@ -50,6 +74,20 @@ class Pet:
     def add_task(self, task: Task) -> None:
         """Add a care task to this pet's task list."""
         self.tasks.append(task)
+
+    def mark_task_complete(self, title: str) -> Optional[Task]:
+        """Mark a task complete by title and auto-schedule its next occurrence.
+
+        Returns the newly created next-occurrence Task, or None if no matching
+        pending task was found.
+        """
+        for task in self.tasks:
+            if task.title == title and not task.completed:
+                task.mark_complete()
+                next_task = task.next_occurrence()
+                self.tasks.append(next_task)
+                return next_task
+        return None
 
     def get_pending_tasks(self) -> list[Task]:
         """Return all tasks that have not yet been completed."""
@@ -126,11 +164,67 @@ class Schedule:
 
         for pet_name, task in sorted_tasks:
             if task.fits_in_time(remaining):
-                self._plan.append(ScheduledTask(self._format_time(current_time), task, pet_name))
+                task.time = self._format_time(current_time)
+                self._plan.append(ScheduledTask(task.time, task, pet_name))
                 current_time += task.duration_minutes
                 remaining -= task.duration_minutes
 
         return self._plan
+
+    def filter_tasks(
+        self,
+        pet_name: Optional[str] = None,
+        completed: Optional[bool] = None,
+    ) -> list[ScheduledTask]:
+        """Return a filtered subset of the current scheduled plan.
+
+        Args:
+            pet_name: If provided, only include tasks belonging to this pet.
+            completed: If True, return only completed tasks. If False, return
+                only pending tasks. If None (default), completion status is ignored.
+
+        Both filters compose — passing both applies both at once. Returns the
+        full plan unchanged if both arguments are None.
+        """
+        results = self._plan
+        if pet_name is not None:
+            results = [st for st in results if st.pet_name == pet_name]
+        if completed is not None:
+            results = [st for st in results if st.task.completed == completed]
+        return results
+
+    def sort_by_time(self) -> list[Task]:
+        """Return all scheduled Task objects sorted ascending by their assigned time slot.
+
+        Relies on the task.time attribute, which is set by generate(). Always
+        call generate() before sort_by_time(), otherwise task.time will be an
+        empty string and the sort order will be undefined.
+        """
+        return sorted(
+            (st.task for st in self._plan),
+            key=lambda t: self._parse_time(t.time)
+        )
+
+    def detect_conflicts(self) -> list[str]:
+        """Check the current plan for overlapping time windows.
+
+        Returns a list of human-readable warning strings — one per conflict pair.
+        Never raises; an empty list means no conflicts.
+        """
+        warnings = []
+        for a, b in combinations(self._plan, 2):
+            a_start = self._parse_time(a.time_slot)
+            a_end = a_start + a.task.duration_minutes
+            b_start = self._parse_time(b.time_slot)
+            b_end = b_start + b.task.duration_minutes
+            if a_start < b_end and b_start < a_end:
+                warnings.append(
+                    f"WARNING: [{a.pet_name}] {a.task.title} "
+                    f"({a.time_slot}–{self._format_time(a_end)}) overlaps with "
+                    f"[{b.pet_name}] {b.task.title} "
+                    f"({b.time_slot}–{self._format_time(b_end)})"
+                )
+        return warnings
 
     def explain(self) -> str:
         """Return a human-readable plan showing scheduled and skipped tasks."""
